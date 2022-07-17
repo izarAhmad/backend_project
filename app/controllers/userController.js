@@ -4,22 +4,36 @@ const jwt = require ("jsonwebtoken");
 const bcrypt = require ("bcrypt");
 const cloudinary = require("../../cloudinary/cloudinary");
 const upload = require("../../cloudinary/multer");
-const {kirimEmail} = require('../middleware/emailVerif')
+const {kirimEmail} = require("../middleware/emailVerif")
 
 module.exports = {
     async Register(req, res) {
-        const { username, email, password, confPassword } = req.body;
-
-        if(password !== confPassword){
-            return res.status(400).json({
-                status: "Failed",
-                msg: "Password and confPassword doesn't match"
-            })
-        }
-        const salt = await bcrypt.genSalt();
-        const hashPassword = await bcrypt.hash(password, salt);
-
         try {
+            const { username, email, password, confPassword } = req.body;
+
+            if(password !== confPassword){
+                return res.status(400).json({
+                    status: "Failed",
+                    msg: "Password and confPassword doesn't match"
+                })
+            }
+            const salt = await bcrypt.genSalt();
+            const hashPassword = await bcrypt.hash(password, salt);
+
+            const existUser = await users.findOne({
+                where: {
+                    email: email
+                }
+            })
+
+            if(existUser) {
+                return res.status(401).json({
+                    status: "Fail",
+                    message: "Email is already exists"
+                })
+            }
+
+        
             await users.create({
                 username: username,
                 email: email,
@@ -33,35 +47,44 @@ module.exports = {
             console.log(error);
         }
 
-        //verif email
-        const templateEmail = {
-            from : 'FSW9-Kelompok-3',
-            to : email,
-            subject : 'Email Verification',
-            html : 'Halo! Terimakasih sudah mendaftar di FSW9-Kelompok-3! Silahkan klik link dibawah untuk memverifikasi akun anda http://localhost:8000'
-         }
-         kirimEmail (templateEmail)
+        // verifemail
+        // const templateEmail = {
+        //     from : 'SecondHand',
+        //     to : email,
+        //     subject : 'Email Verification',
+        //     html : 'Halo! Terimakasih sudah mendaftar di SecondHand! Silahkan klik link dibawah untuk memverifikasi akun anda http://localhost:8000'
+        //  }
+        //  kirimEmail (templateEmail)
     },
 
     async Login(req, res) {
         try {
-            const user = await users.findAll({
+            const user = await users.findOne({
                 where: {
                     email: req.body.email
                 }
             });
-            const match = await bcrypt.compare(req.body.password, user[0].password);
-            if(!match) return res.status(400).json({
+            
+            
+            if(!user) {
+                return res.status(401).json({
+                    msg: "Email doesn't exists"
+                })
+            }
+            
+            
+            const match = bcrypt.compare(user.password, req.body.password);
+            if(!match) return res.status(401).json({
                 msg: "Wrong Password"
             })
 
-            const id = user[0].id;
-            const username = user[0].username;
-            const email = user[0].email;
-            const address = user[0].address;
-            const phone = user[0].phone;
-            const city = user[0].city;
-            const image = user[0].image;
+            const id = user.id;
+            const username = user.username;
+            const email = user.email;
+            const address = user.address;
+            const phone = user.phone;
+            const city = user.city;
+            const image = user.image;
             
             const accessToken = jwt.sign({id, username, email, address, phone, city, image}, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: '1h'
@@ -84,9 +107,9 @@ module.exports = {
                 accessToken
             })
         } catch (error) {
-            res.status(404).json({
-                status: "Failed",
-                msg: "Email doesn't exist!"
+            res.status(500).json({
+                status: "Fail",
+                msg: error.message
             })
         }
     },
@@ -168,3 +191,4 @@ module.exports = {
         }
     }
 }
+
