@@ -6,7 +6,7 @@ Kelompok 3 Fsw 9
 2. Achmad Roudlotun Nizar (Backend)
 3. Satya Pratama (Backend)
 4. Bintang Selviana (Frontend)
-5. Pariz Mahawira (Frontend)
+5. Ridwan Pariz(Frontend)
 6. lastri (Frontend)
 
 API DOCUMENTATION
